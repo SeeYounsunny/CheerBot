@@ -36,7 +36,7 @@ AI BM 팀 해커톤용 Telegram 봇입니다. 팀 단톡방에 초대해 두면,
 ### MBTI 등록 방법
 
 1. **봇을 단톡방에 초대**하고, 메시지를 보낼 수 있는 권한을 줍니다.
-2. 단톡방에서 **`/mbti TYPE`** 을 입력합니다. (예: `/mbti INFP`) — 채팅창에 `/`를 치면 Telegram이 명령 메뉴를 보여줍니다.
+2. 단톡방에서 **`/mbti TYPE`** 을 입력합니다. (예: `/mbti INFP`) — 채팅창에 `/`를 치면 Telegram이 명령 메뉴를 보여줍니다. — 채팅창에 `/`를 치면 Telegram이 명령 메뉴를 보여줍니다.
 3. **16가지 MBTI**만 허용합니다: INTJ, INTP, ENTJ, ENTP, INFJ, INFP, ENFJ, ENFP, ISTJ, ISFJ, ESTJ, ESFJ, ISTP, ISFP, ESTP, ESFP
 4. 이미 등록한 사람이 다시 `/mbti`를 보내면 **새 타입으로 덮어씁니다.**
 5. 등록이 완료되면 아래처럼 확인 메시지가 옵니다.
