@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-MEMBERS_PATH = Path(__file__).resolve().parent / "data" / "members.json"
+ROOT = Path(__file__).resolve().parent
+MEMBERS_PATH = ROOT / "data" / "members.json"
 
 
 def ensure_members_file() -> None:

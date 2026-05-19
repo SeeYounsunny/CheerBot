@@ -1,19 +1,16 @@
-"""MBTI morning cheer Telegram bot."""
+"""MBTI morning cheer Telegram bot (Railway polling + APScheduler)."""
 
 from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime
 
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-from mbti_logic import is_valid_mbti
-from messages import registration_confirm
+from handlers import handle_mbti_command
 from scheduler import setup_scheduler
-from storage import load_members, save_members
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -26,32 +23,16 @@ async def mbti_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if update.message is None or update.effective_user is None:
         return
 
-    if not context.args:
-        await update.message.reply_text("사용법: /mbti INFP (16가지 MBTI 중 하나)")
-        return
-
-    mbti = context.args[0].upper()
-    if not is_valid_mbti(mbti):
-        await update.message.reply_text(
-            "올바른 MBTI 타입이 아니에요. 예: INFP, ENTJ (16가지)"
-        )
-        return
-
     user = update.effective_user
-    display_name = user.first_name or user.username or "팀원"
-    user_id = str(user.id)
-
-    members = load_members()
-    members[user_id] = {
-        "name": display_name,
-        "username": user.username,
-        "mbti": mbti,
-        "registered_at": datetime.now().isoformat(timespec="seconds"),
-    }
-    save_members(members)
-
-    await update.message.reply_text(registration_confirm(display_name, mbti))
-    logger.info("Registered %s (%s) as %s", display_name, user_id, mbti)
+    mbti_raw = " ".join(context.args) if context.args else ""
+    reply = handle_mbti_command(
+        str(user.id),
+        user.first_name or user.username or "팀원",
+        user.username,
+        mbti_raw,
+    )
+    await update.message.reply_text(reply)
+    logger.info("Handled /mbti for user %s", user.id)
 
 
 def main() -> None:
@@ -59,12 +40,19 @@ def main() -> None:
 
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    cheer_time = os.getenv("CHEER_TIME", "09:00")
     if not token:
-        raise SystemExit("TELEGRAM_BOT_TOKEN is required in .env")
+        raise SystemExit("TELEGRAM_BOT_TOKEN environment variable is required")
     if not chat_id:
-        raise SystemExit("TELEGRAM_CHAT_ID is required in .env")
+        raise SystemExit("TELEGRAM_CHAT_ID environment variable is required")
 
     async def post_init(app: Application) -> None:
+        # Clear any Vercel/webhook setup so polling does not conflict (HTTP 409).
+        await app.bot.delete_webhook(drop_pending_updates=True)
+        logger.info(
+            "Webhook cleared; polling mode active (CHEER_TIME=%s KST)",
+            cheer_time,
+        )
         setup_scheduler(app.bot, chat_id)
 
     application = (
@@ -75,7 +63,7 @@ def main() -> None:
     )
     application.add_handler(CommandHandler("mbti", mbti_command))
 
-    logger.info("Starting MBTI cheer bot...")
+    logger.info("Starting MBTI cheer bot (polling mode)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
