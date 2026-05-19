@@ -5,6 +5,7 @@
 ## 기능
 
 - `/mbti INFP` — MBTI 등록/수정 (16타입 검증)
+- `/chatid` — 그룹 Chat ID 확인
 - 평일 `CHEER_TIME` KST — 요일별 MBTI 가중치로 히어로 선정 후 응원 메시지 전송
 
 ## 사전 준비
@@ -19,8 +20,7 @@
 
 1. 팀 그룹에 봇 초대
 2. 봇에게 메시지 보낼 수 있도록 권한 부여
-3. 채팅 ID 확인 (예시):
-   - [@userinfobot](https://t.me/userinfobot) 또는 [@getidsbot](https://t.me/getidsbot)을 그룹에 추가해 ID 확인
+3. 채팅 ID 확인: 그룹에서 `/chatid` 실행 (또는 [@getidsbot](https://t.me/getidsbot) 등)
    - 그룹 ID는 보통 `-100xxxxxxxxxx` 형태
 
 ### 3. 환경 변수

@@ -18,6 +18,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+_CHAT_TYPE_LABELS = {
+    "private": "개인",
+    "group": "그룹",
+    "supergroup": "슈퍼그룹",
+    "channel": "채널",
+}
+
+
+async def chatid_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message is None or update.effective_chat is None:
+        return
+
+    chat = update.effective_chat
+    chat_id = chat.id
+    chat_type = chat.type
+    type_label = _CHAT_TYPE_LABELS.get(chat_type, chat_type)
+    reply = f"이 채팅방 ID: `{chat_id}`\n채팅 유형: {type_label}"
+    await update.message.reply_text(reply, parse_mode="Markdown")
+    logger.info("Handled /chatid: chat_id=%s type=%s", chat_id, chat_type)
+
 
 async def mbti_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message is None or update.effective_user is None:
@@ -61,6 +81,7 @@ def main() -> None:
         .post_init(post_init)
         .build()
     )
+    application.add_handler(CommandHandler("chatid", chatid_command))
     application.add_handler(CommandHandler("mbti", mbti_command))
 
     logger.info("Starting MBTI cheer bot (polling mode)...")
