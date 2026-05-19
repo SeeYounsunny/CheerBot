@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from dotenv import load_dotenv
 from telegram import Update
@@ -17,6 +20,47 @@ logging.basicConfig(
     level=logging.INFO,
 )
 logger = logging.getLogger(__name__)
+
+
+class _HealthHandler(BaseHTTPRequestHandler):
+    """Minimal handler so Railway web health checks see an open PORT."""
+
+    def log_message(self, format: str, *args: object) -> None:
+        del format, args
+
+    def do_GET(self) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(b"ok\n")
+
+
+def _start_health_server() -> None:
+    port_raw = os.getenv("PORT")
+    if not port_raw:
+        logger.info("PORT not set; health HTTP server skipped (worker mode)")
+        return
+    try:
+        port = int(port_raw)
+    except ValueError:
+        logger.error("Invalid PORT=%r; cannot start health server", port_raw)
+        return
+    server = HTTPServer(("0.0.0.0", port), _HealthHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    logger.info("Health check HTTP server listening on 0.0.0.0:%s", port)
+
+
+def _require_env(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if value:
+        return value
+    logger.error("Missing required environment variable: %s", name)
+    logger.error(
+        "Set it in Railway → Service → Variables (or .env for local dev)."
+    )
+    sys.exit(1)
+
 
 _CHAT_TYPE_LABELS = {
     "private": "개인",
@@ -57,14 +101,18 @@ async def mbti_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 def main() -> None:
     load_dotenv()
+    logger.info("CheerBot starting (Python %s)", sys.version.split()[0])
 
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
-    cheer_time = os.getenv("CHEER_TIME", "09:00")
-    if not token:
-        raise SystemExit("TELEGRAM_BOT_TOKEN environment variable is required")
-    if not chat_id:
-        raise SystemExit("TELEGRAM_CHAT_ID environment variable is required")
+    token = _require_env("TELEGRAM_BOT_TOKEN")
+    chat_id = _require_env("TELEGRAM_CHAT_ID")
+    cheer_time = os.getenv("CHEER_TIME", "09:00").strip() or "09:00"
+    logger.info(
+        "Config: TELEGRAM_CHAT_ID=%s CHEER_TIME=%s",
+        chat_id,
+        cheer_time,
+    )
+
+    _start_health_server()
 
     async def post_init(app: Application) -> None:
         # Clear any Vercel/webhook setup so polling does not conflict (HTTP 409).
