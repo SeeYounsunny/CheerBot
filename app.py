@@ -14,6 +14,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 
 from handlers import handle_mbti_command, handle_test_command
 from scheduler import setup_scheduler
+from storage import load_members, members_path
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -111,6 +112,13 @@ async def test_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 def main() -> None:
     load_dotenv()
     logger.info("CheerBot starting (Python %s)", sys.version.split()[0])
+
+    members = load_members()
+    logger.info(
+        "Member storage: %d registered member(s) at %s",
+        len(members),
+        members_path(),
+    )
 
     token = _require_env("TELEGRAM_BOT_TOKEN")
     chat_id = _require_env("TELEGRAM_CHAT_ID")

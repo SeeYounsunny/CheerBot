@@ -36,7 +36,7 @@ AI BM 팀 해커톤용 Telegram 봇입니다. 팀 단톡방에 초대해 두면,
 ### MBTI 등록 방법
 
 1. **봇을 단톡방에 초대**하고, 메시지를 보낼 수 있는 권한을 줍니다.
-2. 단톡방에서 **`/mbti TYPE`** 을 입력합니다. (예: `/mbti INFP`)
+2. 단톡방에서 **`/mbti TYPE`** 을 입력합니다. (예: `/mbti INFP`) — 채팅창에 `/`를 치면 Telegram이 명령 메뉴를 보여줍니다.
 3. **16가지 MBTI**만 허용합니다: INTJ, INTP, ENTJ, ENTP, INFJ, INFP, ENFJ, ENFP, ISTJ, ISFJ, ESTJ, ESFJ, ISTP, ISFP, ESTP, ESFP
 4. 이미 등록한 사람이 다시 `/mbti`를 보내면 **새 타입으로 덮어씁니다.**
 5. 등록이 완료되면 아래처럼 확인 메시지가 옵니다.
@@ -159,6 +159,7 @@ python app.py
 | `TELEGRAM_BOT_TOKEN` | BotFather 토큰 | `123456:ABC...` |
 | `TELEGRAM_CHAT_ID` | 그룹 채팅 ID | `-1001234567890` |
 | `CHEER_TIME` | 평일 응원 시각 (KST, HH:MM) | `09:00` |
+| `DATA_DIR` | (선택) 멤버 JSON 저장 폴더 | `data` (기본값) |
 
 ### 3. 서비스 유형 (중요)
 
@@ -198,7 +199,33 @@ python app.py
 
 ### 데이터 저장
 
-`data/members.json`에 멤버가 저장됩니다. Railway 볼륨을 붙이지 않으면 재배포 시 파일이 초기화될 수 있습니다. 해커톤 데모 후에는 Volume 또는 외부 DB 연동을 권장합니다.
+팀원 MBTI 등록 정보는 **별도 DB 없이** JSON 파일 하나에 저장합니다.
+
+| 환경 | 저장 위치 | 비고 |
+|------|-----------|------|
+| 로컬 | `data/members.json` | 프로젝트 루트 기준 (기본 `DATA_DIR=data`) |
+| Railway | Volume에 마운트한 경로의 `members.json` | Volume 없이 재배포하면 **등록 데이터가 초기화**됩니다 |
+
+시작 로그에 `Member storage: N registered member(s) at ...` 가 출력됩니다. Railway에서 `N`이 0이면 Volume 미연결 또는 경로 불일치를 의심하세요.
+
+#### Railway Volume 설정 (재배포 후에도 유지)
+
+Railway 컨테이너 디스크는 **휘발성**입니다. 재시작·재배포마다 `data/members.json` 이 사라지지 않게 하려면 **Volume**을 붙입니다.
+
+1. Railway 프로젝트 → **CheerBot 서비스** 선택
+2. 상단 **Volumes** 탭 → **Add Volume**
+3. **Mount Path** 입력: `/app/data`  
+   (Nixpacks 배포 시 앱 루트가 `/app` 이므로, 기본 `DATA_DIR=data` 와 맞춥니다)
+4. **Size** 선택 후 Volume 생성
+5. (선택) Mount Path를 다르게 썼다면 Variables에 `DATA_DIR` 추가  
+   예: Mount Path가 `/data` 이면 `DATA_DIR=/data`
+6. **Redeploy** 한 번 실행
+7. 로그에서 `Member storage: ... at /app/data/members.json` 경로 확인
+8. Telegram 그룹에서 `/mbti ENFP` 로 등록 후, **재배포**해도 로그의 `N`이 유지되는지 확인
+
+> **경고:** Volume을 붙이지 않은 채 재배포하면 `/mbti` 로 등록한 팀원 목록이 **전부 초기화**됩니다. 해커톤 데모 전에 Volume을 먼저 붙이는 것을 권장합니다.
+
+로컬에서는 `data/` 폴더가 git에 포함되지 않아도, 첫 `/mbti` 시 자동으로 생성됩니다.
 
 ## 프로젝트 구조
 
@@ -233,4 +260,4 @@ python app.py
 
 ## 데이터
 
-`data/members.json` — Telegram user ID를 키로 저장합니다. 재등록 시 덮어씁니다.
+`{DATA_DIR}/members.json` (기본 `data/members.json`) — Telegram user ID를 키로 저장합니다. 재등록 시 덮어씁니다. 저장 시 임시 파일에 쓴 뒤 rename하여 손상을 줄입니다.
