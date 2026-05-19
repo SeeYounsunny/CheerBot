@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-from handlers import handle_mbti_command
+from handlers import handle_mbti_command, handle_test_command
 from scheduler import setup_scheduler
 
 logging.basicConfig(
@@ -99,6 +99,15 @@ async def mbti_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     logger.info("Handled /mbti for user %s", user.id)
 
 
+async def test_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message is None:
+        return
+
+    reply = handle_test_command()
+    await update.message.reply_text(reply)
+    logger.info("Handled /test preview")
+
+
 def main() -> None:
     load_dotenv()
     logger.info("CheerBot starting (Python %s)", sys.version.split()[0])
@@ -131,6 +140,7 @@ def main() -> None:
     )
     application.add_handler(CommandHandler("chatid", chatid_command))
     application.add_handler(CommandHandler("mbti", mbti_command))
+    application.add_handler(CommandHandler("test", test_command))
 
     logger.info("Starting MBTI cheer bot (polling mode)...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)

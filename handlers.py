@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from cheer import (
+    NO_MEMBERS_MESSAGE,
+    PREVIEW_PREFIX,
+    build_morning_cheer_message,
+)
 from mbti_logic import is_valid_mbti
 from messages import registration_confirm
 from storage import load_members, save_members
@@ -31,3 +36,12 @@ def handle_mbti_command(
     }
     save_members(members)
     return registration_confirm(display_name, mbti)
+
+
+def handle_test_command() -> str:
+    text = build_morning_cheer_message(
+        skip_weekend=False,
+        preview_prefix=PREVIEW_PREFIX,
+        empty_members_message=NO_MEMBERS_MESSAGE,
+    )
+    return text or NO_MEMBERS_MESSAGE
